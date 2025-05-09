@@ -1,3 +1,6 @@
+"engines": {
+  "node": "20.x"
+},
 {
   "name": "gsmarena-scraper",
   "version": "1.0.0",
