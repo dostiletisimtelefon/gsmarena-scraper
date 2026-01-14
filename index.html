@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mini Anket</title>
+<style>
+  :root{
+    --bg:#0b0b0f;
+    --card:#141420;
+    --text:#f4f4ff;
+    --muted:#b9b9d6;
+    --yes:#2ecc71;
+    --no:#e74c3c;
+    --stroke: rgba(255,255,255,.10);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: radial-gradient(900px 500px at 50% 20%, rgba(120,90,255,.18), transparent 60%),
+                radial-gradient(900px 500px at 50% 80%, rgba(46,204,113,.10), transparent 60%),
+                var(--bg);
+    color:var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    padding:18px;
+  }
+  .card{
+    width:min(520px, 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border:1px solid var(--stroke);
+    border-radius:18px;
+    padding:18px;
+    box-shadow: 0 16px 60px rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+  }
+  .top{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .badge{
+    font-size:12px;
+    color:var(--muted);
+    border:1px solid var(--stroke);
+    padding:6px 10px;
+    border-radius:999px;
+  }
+  .progress{
+    font-size:12px;
+    color:var(--muted);
+  }
+  h1{
+    margin:8px 0 6px;
+    font-size:22px;
+    line-height:1.2;
+    letter-spacing:.2px;
+  }
+  p{
+    margin:0 0 14px;
+    color:var(--muted);
+    font-size:14px;
+    line-height:1.4;
+  }
+
+  .btnRow{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-top:8px;
+  }
+  button{
+    border:none;
+    border-radius:14px;
+    padding:14px 18px;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    transition: transform .2s ease, filter .2s ease, opacity .2s ease;
+    user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active{ transform: scale(.98); }
+
+  .yes{ background: var(--yes); color:#06210f; }
+  .no{ background: var(--no); color:#fff; }
+
+  /* “kaçan” buton için alan */
+  .playArea{
+    position:relative;
+    width:100%;
+    height:140px;
+    border-radius:16px;
+    border:1px dashed rgba(255,255,255,.12);
+    background: rgba(0,0,0,.18);
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-top:10px;
+  }
+
+  /* EVET ortada sabit kalsın, büyüdükçe ekranı bassın */
+  .playArea .yes{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform: translate(-50%, -50%) scale(1);
+    z-index:2;
+  }
+  .playArea .no{
+    position:absolute;
+    left: 62%;
+    top: 22%;
+    z-index:1;
+  }
+
+  .bigText{
+    font-size:24px;
+    line-height:1.25;
+    margin:10px 0 0;
+    text-align:center;
+  }
+  .sub{
+    text-align:center;
+    margin-top:10px;
+    color:var(--muted);
+  }
+  .restart{
+    margin-top:14px;
+    width:100%;
+    background: rgba(255,255,255,.08);
+    color: var(--text);
+    border: 1px solid var(--stroke);
+  }
+</style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="Mini Anket">
+    <div class="top">
+      <div class="badge">Mini Anket</div>
+      <div class="progress" id="progress">1 / 3</div>
+    </div>
+
+    <h1 id="title">Soru 1</h1>
+    <p id="desc">İsminin içinde <b>“e”</b> harfi var mı?</p>
+
+    <div id="normalRow" class="btnRow">
+      <button class="yes" id="btnYes">Evet</button>
+      <button class="no" id="btnNo">Hayır</button>
+    </div>
+
+    <div id="playArea" class="playArea" style="display:none;">
+      <button class="yes" id="yesPlay">Evet</button>
+      <button class="no" id="noPlay">Hayır</button>
+    </div>
+
+    <div id="result" style="display:none;">
+      <div class="bigText" id="resultText">O zaman sen tam bir sevimsizsin 😌</div>
+      <div class="sub">Bu sonuç bilimsel değildir ama çok nettir.</div>
+      <button class="restart" id="restartBtn">Tekrar Yap</button>
+    </div>
+  </div>
+
+<script>
+  const progress = document.getElementById("progress");
+  const title = document.getElementById("title");
+  const desc = document.getElementById("desc");
+
+  const normalRow = document.getElementById("normalRow");
+  const btnYes = document.getElementById("btnYes");
+  const btnNo = document.getElementById("btnNo");
+
+  const playArea = document.getElementById("playArea");
+  const yesPlay = document.getElementById("yesPlay");
+  const noPlay = document.getElementById("noPlay");
+
+  const result = document.getElementById("result");
+  const resultText = document.getElementById("resultText");
+  const restartBtn = document.getElementById("restartBtn");
+
+  let step = 1;
+
+  // Kaçan-butondaki ölçekler
+  let yesScale = 1;
+  let noScale  = 1;
+  let noClicks = 0;
+
+  function setStep(n){
+    step = n;
+    progress.textContent = `${step} / 3`;
+
+    if(step === 1){
+      title.textContent = "Soru 1";
+      desc.innerHTML = `İsminin içinde <b>“e”</b> harfi var mı?`;
+      normalRow.style.display = "flex";
+      playArea.style.display = "none";
+      result.style.display = "none";
+    }
+
+    if(step === 2){
+      title.textContent = "Soru 2";
+      desc.innerHTML = `Sabah uyanınca ilk <b>10 dakika</b> içinde telefona bakar mısın?`;
+      normalRow.style.display = "flex";
+      playArea.style.display = "none";
+      result.style.display = "none";
+    }
+
+    if(step === 3){
+      title.textContent = "Soru 3";
+      desc.innerHTML = `Şimdi son soru çok önemli: <b>“Sevimsiz Misin?”</b>`;
+      normalRow.style.display = "none";
+      playArea.style.display = "flex";
+      result.style.display = "none";
+
+      // reset oyun alanı
+      yesScale = 1;
+      noScale = 1;
+      noClicks = 0;
+      yesPlay.style.transform = "translate(-50%, -50%) scale(1)";
+      noPlay.style.transform  = "scale(1)";
+      noPlay.style.display = "block";
+      moveNoRandom();
+    }
+  }
+
+  function showResult(){
+    playArea.style.display = "none";
+    normalRow.style.display = "none";
+    title.textContent = "Sonuç";
+    desc.textContent = "";
+    progress.textContent = "Bitti ✅";
+    result.style.display = "block";
+    resultText.textContent = "Biliyorduk zaten… sevimsizsin teki olduğunu 😌";
+  }
+
+  function moveNoRandom(){
+    // mobilde parmakla basmayı zorlaştıracak kadar kaçsın ama tamamen uçmasın
+    const area = playArea.getBoundingClientRect();
+    const btn = noPlay.getBoundingClientRect();
+
+    const maxX = Math.max(0, area.width - btn.width - 8);
+    const maxY = Math.max(0, area.height - btn.height - 8);
+
+    const x = Math.random() * maxX + 4;
+    const y = Math.random() * maxY + 4;
+
+    noPlay.style.left = `${x}px`;
+    noPlay.style.top  = `${y}px`;
+  }
+
+  // İlk 2 soru: tıklayınca bir sonrakine geç
+  function onNormalAnswer(){
+    if(step < 3) setStep(step + 1);
+  }
+
+  btnYes.addEventListener("click", onNormalAnswer);
+  btnNo.addEventListener("click", onNormalAnswer);
+
+  // 3. soru oyun: Hayır’a basınca EVET büyür, Hayır küçülür & kaçar
+  noPlay.addEventListener("click", () => {
+    noClicks++;
+
+    // EVET daha hızlı büyüsün
+    yesScale += 0.45;
+    yesPlay.style.transform = `translate(-50%, -50%) scale(${yesScale})`;
+
+    // HAYIR küçülsün
+    noScale  -= 0.18;
+    noPlay.style.transform  = `scale(${Math.max(noScale, 0.35)})`;
+
+    // HAYIR kaçsın
+    moveNoRandom();
+
+    // 5 tık sonra kaçış yok: Hayır kaybolur, EVET devleşir
+    if(noClicks >= 5){
+      noPlay.style.display = "none";
+      yesScale = Math.max(yesScale, 2.8);
+      yesPlay.style.transform = `translate(-50%, -50%) scale(${yesScale})`;
+    }
+  });
+
+  // EVET'e basınca sonuç
+  yesPlay.addEventListener("click", showResult);
+
+  // restart
+  restartBtn.addEventListener("click", () => setStep(1));
+
+  // Başlat
+  setStep(1);
+
+  // Bonus: mobilde kullanıcı hayır'a yaklaşınca da kaçsın (komik)
+  noPlay.addEventListener("touchstart", () => {
+    moveNoRandom();
+  }, {passive:true});
+</script>
+</body>
+</html>
